@@ -169,6 +169,10 @@ __Tx__
 
 * `config validate`
 
+### Automatically generate a configuration file
+* `config auto [OPTIONS] --output <PATH> --chains <CHAIN_NAME:OPTIONAL_KEY_NAME>`
+    * Optional : `[--commit <COMMIT_HASH>]`
+
 ### Health check
 
 * `health-check`

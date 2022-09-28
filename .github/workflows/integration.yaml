@@ -5,6 +5,8 @@ on:
       - .github/workflows/integration.yaml
       - Cargo.toml
       - Cargo.lock
+      - flake.nix
+      - flake.lock
       - ci/**
       - e2e/**
       - proto/**
@@ -20,6 +22,8 @@ on:
       - .github/workflows/integration.yaml
       - Cargo.toml
       - Cargo.lock
+      - flake.nix
+      - flake.lock
       - ci/**
       - e2e/**
       - proto/**
@@ -41,6 +45,7 @@ env:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         chain:
@@ -62,12 +67,15 @@ jobs:
           - package: ibc-go-v4-simapp
             command: simd
             account_prefix: cosmos
-          - package: osmosis
-            command: osmosisd
-            account_prefix: osmo
+          - package: ibc-go-v5-simapp
+            command: simd
+            account_prefix: cosmos
           - package: wasmd
             command: wasmd
             account_prefix: wasm
+          - package: evmos
+            command: evmosd
+            account_prefix: evmos
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v15
@@ -101,6 +109,7 @@ jobs:
 
   ordered-channel-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v15
@@ -164,6 +173,7 @@ jobs:
 
   model-based-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         gaiad:

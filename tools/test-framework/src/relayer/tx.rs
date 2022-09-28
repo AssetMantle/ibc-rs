@@ -13,7 +13,7 @@ use ibc_relayer::chain::cosmos::types::config::TxConfig;
 use ibc_relayer::chain::cosmos::types::gas::GasConfig;
 use ibc_relayer::chain::cosmos::types::tx::{TxStatus, TxSyncResult};
 use ibc_relayer::chain::cosmos::wait::wait_for_block_commits;
-use ibc_relayer::config::GasPrice;
+use ibc_relayer::config::{AddressType, GasPrice};
 use ibc_relayer::keyring::KeyEntry;
 use tendermint_rpc::{HttpClient, Url};
 
@@ -48,6 +48,7 @@ pub fn new_tx_config_for_test(
     chain_id: ChainId,
     raw_rpc_address: String,
     raw_grpc_address: String,
+    address_type: AddressType,
 ) -> Result<TxConfig, Error> {
     let rpc_address = Url::from_str(&raw_rpc_address).map_err(handle_generic_error)?;
 
@@ -59,7 +60,7 @@ pub fn new_tx_config_for_test(
 
     let rpc_timeout = Duration::from_secs(30);
 
-    let address_type = Default::default();
+    let extension_options = Default::default();
 
     Ok(TxConfig {
         chain_id,
@@ -69,6 +70,7 @@ pub fn new_tx_config_for_test(
         grpc_address,
         rpc_timeout,
         address_type,
+        extension_options,
     })
 }
 
@@ -96,7 +98,7 @@ pub async fn simple_send_tx(
     let message_count = messages.len();
 
     let response =
-        estimate_fee_and_send_tx(config, key_entry, &account, &Default::default(), messages)
+        estimate_fee_and_send_tx(config, key_entry, &account, &Default::default(), &messages)
             .await?;
 
     let tx_sync_result = TxSyncResult {
@@ -118,7 +120,7 @@ pub async fn simple_send_tx(
 
     for result in tx_sync_results.iter() {
         for event in result.events.iter() {
-            if let IbcEvent::ChainError(e) = event {
+            if let IbcEvent::ChainError(ref e) = event.event {
                 return Err(Error::generic(eyre!("send_tx result in error: {}", e)));
             }
         }

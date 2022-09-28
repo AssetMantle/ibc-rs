@@ -123,7 +123,7 @@ pub fn bootstrap_foreign_client<ChainA: ChainHandle, ChainB: ChainHandle>(
         ForeignClient::restore(ClientId::default(), chain_b.clone(), chain_a.clone());
 
     let event = foreign_client.build_create_client_and_send(client_options)?;
-    let client_id = extract_client_id(&event)?.clone();
+    let client_id = extract_client_id(&event.event)?.clone();
 
     info!(
         "created foreign client from chain {} to chain {} with client id {} on chain {}",
@@ -250,7 +250,7 @@ pub fn new_registry(config: Config) -> SharedRegistry<CountingAndCachingChainHan
    [`FullNode`] and add it to the relayer's [`Config`].
 */
 pub fn add_chain_config(config: &mut Config, running_node: &FullNode) -> Result<(), Error> {
-    let chain_config = running_node.generate_chain_config()?;
+    let chain_config = running_node.generate_chain_config(&running_node.chain_driver.chain_type)?;
 
     config.chains.push(chain_config);
     Ok(())

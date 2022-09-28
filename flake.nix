@@ -39,7 +39,9 @@
               ibc-go-v2-simapp
               ibc-go-v3-simapp
               ibc-go-v4-simapp
+              ibc-go-v5-simapp
               apalache
+              evmos
             ;
 
             python = nixpkgs.python3.withPackages (p: [
