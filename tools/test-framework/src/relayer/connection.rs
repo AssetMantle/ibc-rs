@@ -4,12 +4,14 @@
 
 use core::time::Duration;
 use eyre::eyre;
-use ibc::core::ics03_connection::connection::State as ConnectionState;
-use ibc::core::ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd};
-use ibc::timestamp::ZERO_DURATION;
 use ibc_relayer::chain::handle::ChainHandle;
 use ibc_relayer::chain::requests::{IncludeProof, QueryConnectionRequest, QueryHeight};
 use ibc_relayer::connection::{extract_connection_id, Connection, ConnectionSide};
+use ibc_relayer_types::core::ics03_connection::connection::State as ConnectionState;
+use ibc_relayer_types::core::ics03_connection::connection::{
+    ConnectionEnd, IdentifiedConnectionEnd,
+};
+use ibc_relayer_types::timestamp::ZERO_DURATION;
 
 use crate::error::Error;
 use crate::types::id::{TaggedClientIdRef, TaggedConnectionId, TaggedConnectionIdRef};
@@ -76,9 +78,43 @@ pub fn init_connection<ChainA: ChainHandle, ChainB: ChainHandle>(
     };
 
     let event = connection.build_conn_init_and_send()?;
-
     let connection_id = extract_connection_id(&event)?.clone();
+    let connection2 = Connection::restore_from_event(handle_b.clone(), handle_a.clone(), &event)?;
 
+    Ok((DualTagged::new(connection_id), connection2))
+}
+
+pub fn try_connection<ChainA: ChainHandle, ChainB: ChainHandle>(
+    handle_a: &ChainA,
+    handle_b: &ChainB,
+    connection: &Connection<ChainA, ChainB>,
+) -> Result<
+    (
+        TaggedConnectionId<ChainB, ChainA>,
+        Connection<ChainB, ChainA>,
+    ),
+    Error,
+> {
+    let event = connection.build_conn_try_and_send()?;
+    let connection_id = extract_connection_id(&event)?.clone();
+    let connection2 = Connection::restore_from_event(handle_b.clone(), handle_a.clone(), &event)?;
+
+    Ok((DualTagged::new(connection_id), connection2))
+}
+
+pub fn ack_connection<ChainA: ChainHandle, ChainB: ChainHandle>(
+    handle_a: &ChainA,
+    handle_b: &ChainB,
+    connection: &Connection<ChainA, ChainB>,
+) -> Result<
+    (
+        TaggedConnectionId<ChainB, ChainA>,
+        Connection<ChainB, ChainA>,
+    ),
+    Error,
+> {
+    let event = connection.build_conn_ack_and_send()?;
+    let connection_id = extract_connection_id(&event)?.clone();
     let connection2 = Connection::restore_from_event(handle_b.clone(), handle_a.clone(), &event)?;
 
     Ok((DualTagged::new(connection_id), connection2))

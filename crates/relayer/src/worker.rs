@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::fmt::{Display, Error as FmtError, Formatter};
-use ibc::core::ics04_channel::channel::Order;
+use ibc_relayer_types::core::ics04_channel::channel::Order;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tracing::error;
@@ -118,6 +118,7 @@ pub fn spawn_worker_tasks<ChainA: ChainHandle, ChainB: ChainHandle>(
                     src_channel_id: path.src_channel_id.clone(),
                 },
                 packets_config.tx_confirmation,
+                packets_config.auto_register_counterparty_payee,
             );
 
             match link_res {

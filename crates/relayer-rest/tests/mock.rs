@@ -2,12 +2,12 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use ibc::core::ics24_host::identifier::ChainId;
 use ibc_relayer::{
     config::ChainConfig,
     rest::request::{Request, VersionInfo},
     supervisor::dump_state::SupervisorState,
 };
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
 use ibc_relayer_rest::{server::spawn, Config};
 
@@ -63,7 +63,7 @@ fn version() {
 
     let rest_api_version = VersionInfo {
         name: "ibc-relayer-rest".to_string(),
-        version: "0.19.0".to_string(),
+        version: "0.20.0".to_string(),
     };
 
     let result = vec![version.clone(), rest_api_version];

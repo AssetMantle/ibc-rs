@@ -1,9 +1,9 @@
 use core::time::Duration;
 use std::thread::sleep;
 
-use ibc::core::ics03_connection::connection::State as ConnectionState;
-use ibc::core::ics04_channel::channel::State as ChannelState;
 use ibc_relayer::config::{self, Config, ModeConfig};
+use ibc_relayer_types::core::ics03_connection::connection::State as ConnectionState;
+use ibc_relayer_types::core::ics04_channel::channel::State as ChannelState;
 
 use ibc_test_framework::bootstrap::binary::chain::bootstrap_foreign_client_pair;
 use ibc_test_framework::bootstrap::binary::channel::{
@@ -97,10 +97,6 @@ pub struct CreateOnExpiredClientTest;
 pub struct MisbehaviorExpirationTest;
 
 impl TestOverrides for ExpirationTestOverrides {
-    fn modify_test_config(&self, config: &mut TestConfig) {
-        config.bootstrap_with_random_ids = false;
-    }
-
     fn modify_relayer_config(&self, config: &mut Config) {
         config.mode = ModeConfig {
             clients: config::Clients {
@@ -115,6 +111,7 @@ impl TestOverrides for ExpirationTestOverrides {
                 clear_interval: 10,
                 clear_on_start: true,
                 tx_confirmation: true,
+                ..Default::default()
             },
         };
 
@@ -292,8 +289,7 @@ impl BinaryChainTest for PacketExpirationTest {
             &channels.channel_id_a.as_ref(),
             &chains.node_a.wallets().user1(),
             &chains.node_b.wallets().user1().address(),
-            &chains.node_a.denom(),
-            100,
+            &chains.node_a.denom().with_amount(100u64).as_ref(),
         )?;
 
         wait_for_client_expiry();
@@ -316,7 +312,11 @@ impl BinaryChainTest for PacketExpirationTest {
                 &denom_b.as_ref(),
             )?;
 
-            assert_eq("balance on wallet B should remain zero", &balance_b, &0)?;
+            assert_eq(
+                "balance on wallet B should remain zero",
+                &balance_b.amount(),
+                &0u64.into(),
+            )?;
 
             Ok(())
         })

@@ -1,11 +1,11 @@
 use std::thread::sleep;
 use std::time::Duration;
 
-use ibc::core::ics04_channel::packet::Sequence;
 use ibc_relayer::chain::requests::{
     QueryPacketAcknowledgementsRequest, QueryPacketCommitmentsRequest, QueryUnreceivedAcksRequest,
     QueryUnreceivedPacketsRequest,
 };
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
 use ibc_test_framework::ibc::denom::Denom;
 use ibc_test_framework::prelude::*;
 use ibc_test_framework::types::tagged::mono::Tagged;
@@ -19,7 +19,7 @@ pub const CLIENT_EXPIRY: Duration = Duration::from_secs(15);
 
 pub fn get_chain<ChainA, ChainB, ChainX>(
     chains: &ConnectedChains<ChainA, ChainB>,
-    chain_id: u64,
+    chain_id: u128,
 ) -> Tagged<ChainX, &FullNode>
 where
     ChainA: ChainHandle,
@@ -35,7 +35,7 @@ where
 
 pub fn get_wallet<'a, ChainX>(
     wallets: &'a Tagged<ChainX, &TestWallets>,
-    user: u64,
+    user: u128,
 ) -> Tagged<ChainX, &'a Wallet> {
     match user {
         1 => wallets.user1(),

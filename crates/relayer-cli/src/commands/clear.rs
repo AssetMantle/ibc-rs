@@ -2,12 +2,12 @@ use abscissa_core::clap::Parser;
 use abscissa_core::config::Override;
 use abscissa_core::{Command, FrameworkErrorKind, Runnable};
 
-use ibc::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
-use ibc::events::IbcEvent;
 use ibc_relayer::chain::handle::{BaseChainHandle, ChainHandle};
 use ibc_relayer::config::Config;
 use ibc_relayer::link::error::LinkError;
 use ibc_relayer::link::{Link, LinkParameters};
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+use ibc_relayer_types::events::IbcEvent;
 
 use crate::application::app_config;
 use crate::cli_utils::spawn_chain_counterparty;
@@ -115,11 +115,12 @@ impl Runnable for ClearPacketsCmd {
             src_port_id: self.port_id.clone(),
             src_channel_id: self.channel_id.clone(),
         };
-        let fwd_link = match Link::new_from_opts(chains.src.clone(), chains.dst, opts, false) {
+        let fwd_link = match Link::new_from_opts(chains.src.clone(), chains.dst, opts, false, false)
+        {
             Ok(link) => link,
             Err(e) => Output::error(format!("{}", e)).exit(),
         };
-        let rev_link = match fwd_link.reverse(false) {
+        let rev_link = match fwd_link.reverse(false, false) {
             Ok(link) => link,
             Err(e) => Output::error(format!("{}", e)).exit(),
         };
@@ -158,7 +159,7 @@ mod tests {
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
 
     #[test]
     fn test_clear_packets_required_only() {

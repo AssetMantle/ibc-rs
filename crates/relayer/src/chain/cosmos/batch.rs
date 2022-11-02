@@ -1,9 +1,9 @@
 use core::mem;
 
-use ibc::core::ics24_host::identifier::ChainId;
-use ibc::events::IbcEvent;
-use ibc::Height;
 use ibc_proto::google::protobuf::Any;
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::Height;
 use prost::Message;
 use tendermint_rpc::endpoint::broadcast::tx_sync::Response;
 use tracing::debug;
@@ -132,7 +132,8 @@ pub async fn send_batched_messages_and_wait_check_tx(
 
     for batch in batches {
         let response =
-            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, batch).await?;
+            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, &batch)
+                .await?;
 
         responses.push(response);
     }
@@ -178,7 +179,8 @@ async fn send_messages_as_batches(
         let message_count = batch.len();
 
         let response =
-            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, batch).await?;
+            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, &batch)
+                .await?;
 
         let tx_sync_result = response_to_tx_sync_result(&config.chain_id, message_count, response);
 
@@ -226,7 +228,8 @@ async fn sequential_send_messages_as_batches(
         let message_count = batch.len();
 
         let response =
-            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, batch).await?;
+            send_tx_with_account_sequence_retry(config, key_entry, account, tx_memo, &batch)
+                .await?;
 
         let tx_sync_result = response_to_tx_sync_result(&config.chain_id, message_count, response);
 
@@ -355,8 +358,8 @@ mod tests {
     use crate::config;
     use crate::config::types::{MaxMsgNum, MaxTxSize, Memo};
     use crate::keyring::{self, KeyEntry, KeyRing};
-    use ibc::core::ics24_host::identifier::ChainId;
     use ibc_proto::google::protobuf::Any;
+    use ibc_relayer_types::core::ics24_host::identifier::ChainId;
     use std::fs;
 
     const COSMOS_HD_PATH: &str = "m/44'/118'/0'/0/0";

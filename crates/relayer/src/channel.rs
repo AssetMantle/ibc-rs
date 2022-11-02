@@ -6,20 +6,21 @@ use serde::Serialize;
 use tracing::{debug, error, info, warn};
 
 pub use error::ChannelError;
-use ibc::core::ics04_channel::channel::{
+use ibc_relayer_types::core::ics04_channel::channel::{
     ChannelEnd, Counterparty, IdentifiedChannelEnd, Order, State,
 };
-use ibc::core::ics04_channel::msgs::chan_close_confirm::MsgChannelCloseConfirm;
-use ibc::core::ics04_channel::msgs::chan_close_init::MsgChannelCloseInit;
-use ibc::core::ics04_channel::msgs::chan_open_ack::MsgChannelOpenAck;
-use ibc::core::ics04_channel::msgs::chan_open_confirm::MsgChannelOpenConfirm;
-use ibc::core::ics04_channel::msgs::chan_open_init::MsgChannelOpenInit;
-use ibc::core::ics04_channel::msgs::chan_open_try::MsgChannelOpenTry;
-use ibc::core::ics04_channel::Version;
-use ibc::core::ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId};
-use ibc::events::IbcEvent;
-use ibc::tx_msg::Msg;
-use ibc::Height;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_close_confirm::MsgChannelCloseConfirm;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_close_init::MsgChannelCloseInit;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_open_ack::MsgChannelOpenAck;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_open_confirm::MsgChannelOpenConfirm;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_open_init::MsgChannelOpenInit;
+use ibc_relayer_types::core::ics04_channel::msgs::chan_open_try::MsgChannelOpenTry;
+use ibc_relayer_types::core::ics24_host::identifier::{
+    ChainId, ChannelId, ClientId, ConnectionId, PortId,
+};
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::tx_msg::Msg;
+use ibc_relayer_types::Height;
 
 use crate::chain::counterparty::{channel_connection_client, channel_state_on_destination};
 use crate::chain::handle::ChainHandle;
@@ -34,11 +35,12 @@ use crate::object::Channel as WorkerChannelObject;
 use crate::supervisor::error::Error as SupervisorError;
 use crate::util::pretty::{PrettyDuration, PrettyOption};
 use crate::util::retry::retry_with_index;
-use crate::util::retry::{retry_count, RetryResult};
+use crate::util::retry::RetryResult;
 use crate::util::task::Next;
 
 pub mod error;
 pub mod version;
+use version::Version;
 
 mod handshake_retry {
     //! Provides utility methods and constants to configure the retry behavior
@@ -74,14 +76,7 @@ mod handshake_retry {
     /// Translates from an error type that the `retry` mechanism threw into
     /// a crate specific error of [`ChannelError`] type.
     pub fn from_retry_error(e: retry::Error<ChannelError>, description: String) -> ChannelError {
-        match e {
-            retry::Error::Operation {
-                error: _,
-                total_delay,
-                tries,
-            } => ChannelError::max_retry(description, tries, total_delay),
-            retry::Error::Internal(reason) => ChannelError::retry_internal(reason),
-        }
+        ChannelError::max_retry(description, e.tries, e.total_delay, e.error)
     }
 }
 
@@ -719,7 +714,8 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
             }
         })
         .map_err(|err| {
-            error!("failed to open channel after {} retries", retry_count(&err));
+            error!("failed to open channel after {} retries", err.tries);
+
             handshake_retry::from_retry_error(
                 err,
                 format!("failed to finish channel handshake for {:?}", self),
@@ -751,7 +747,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
         &mut self,
         state: State,
     ) -> Result<(Option<IbcEvent>, Next), ChannelError> {
-        let res = match (state, self.counterparty_state()?) {
+        let event = match (state, self.counterparty_state()?) {
             (State::Init, State::Uninitialized) => Some(self.build_chan_open_try_and_send()?),
             (State::Init, State::Init) => Some(self.build_chan_open_try_and_send()?),
             (State::TryOpen, State::Init) => Some(self.build_chan_open_ack_and_send()?),
@@ -766,7 +762,13 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
             _ => None,
         };
 
-        Ok((res, Next::Continue))
+        // Abort if the channel is at OpenAck or OpenConfirm stage, as there is nothing more for the worker to do
+        match event {
+            Some(IbcEvent::OpenConfirmChannel(_)) | Some(IbcEvent::OpenAckChannel(_)) => {
+                Ok((event, Next::Abort))
+            }
+            _ => Ok((event, Next::Continue)),
+        }
     }
 
     pub fn step_state(&mut self, state: State, index: u64) -> RetryResult<Next, u64> {

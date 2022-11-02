@@ -1,6 +1,6 @@
-use ibc::core::ics24_host::identifier::ChainId;
 use ibc_proto::cosmos::tx::v1beta1::{Fee, Tx};
 use ibc_proto::google::protobuf::Any;
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use tonic::codegen::http::Uri;
 use tracing::{debug, error, span, warn, Level};
 
@@ -153,6 +153,7 @@ fn can_recover_from_simulation_failure(e: &Error) -> bool {
         GrpcStatus(detail) => {
             detail.is_client_state_height_too_low()
                 || detail.is_account_sequence_mismatch_that_can_be_ignored()
+                || detail.is_out_of_order_packet_sequence_error()
         }
         _ => false,
     }
